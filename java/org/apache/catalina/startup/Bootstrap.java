@@ -140,15 +140,26 @@ public final class Bootstrap {
 
     // -------------------------------------------------------- Private Methods
 
-
+    /**
+     * 容器不希望它下面的webapps之间能互相访问到，所以不能用appClassLoarder去加载。
+     * 所以tomcat新建一个sharedClassLoader（它的parent是commonClassLoader，commonClassLoader
+     * 的parent是appClassLoarder，默认情况下，sharedClassLoader和commonClassLoader是同一个
+     * UrlClassLoader实例），这是catalina容器使用的ClassLoader。对于每个webapp，为其新建一个webappClassLoader，
+     * 用于加载webapp下面的类，这样webapp之间就不能相互访问了。tomcat的ClassLoader不完全遵循双亲委派，
+     * 首先用webappClassLoader去加载某个类，如果找不到，再交给parent。而对于java核心库，不在tomcat的ClassLoader的加载范围。
+     */
     private void initClassLoaders() {
         try {
+            //创建commonClassLoader，虽然第二个参数（父类加载器）为null，但是createClassLoader里面最终返回urlClassLoader,
+            //urlClassLoader在没有指定父类加载器的情况先默认父类加载器为appClassLoader
             commonLoader = createClassLoader("common", null);
             if (commonLoader == null) {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader = this.getClass().getClassLoader();
             }
+            //catalinaLoader类加载器加载tomcat自身需要而他部署的应用不需要的类，同时指定父类加载器为commonLoader
             catalinaLoader = createClassLoader("server", commonLoader);
+            //sharedLoader加载webApp可共享的类，同时指定父类加载器为commonLoader
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
             handleThrowable(t);
@@ -249,11 +260,12 @@ public final class Bootstrap {
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
-
+        //初始化类加载器
         initClassLoaders();
-
+        //设置上下文类加载器
         Thread.currentThread().setContextClassLoader(catalinaLoader);
-
+        //通过限定包名，类名安全加载tomcat自身所需类（至于为什么不适用默认的类加载器而是用自定义的类加载器去加载相关类，
+        //我猜是为了安全考虑，通过这个自定义的类加载器加载的类对webapp不可见，也多commonclassloader加载的其他类不可见）
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
         // Load our startup class and call its process() method
@@ -441,6 +453,7 @@ public final class Bootstrap {
                 // Don't set daemon until init() has completed
                 Bootstrap bootstrap = new Bootstrap();
                 try {
+                    //初始化操作，着重看一下
                     bootstrap.init();
                 } catch (Throwable t) {
                     handleThrowable(t);
@@ -462,6 +475,7 @@ public final class Bootstrap {
                 command = args[args.length - 1];
             }
 
+            //这里监听各种启动命令， 如启动、关闭 daemon.load（args）方法通过反射调用这些命令
             if (command.equals("startd")) {
                 args[args.length - 1] = "start";
                 daemon.load(args);
