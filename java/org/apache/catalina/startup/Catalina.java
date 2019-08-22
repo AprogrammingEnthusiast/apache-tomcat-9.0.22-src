@@ -546,18 +546,22 @@ public class Catalina {
 
         long t1 = System.nanoTime();
 
+        //1.该方法主要用于设置catalina.home及catalina.base系统属性
         initDirs();
 
-        // Before digester - it may be needed
+        // 2.该方法主要用于设置javax.naming的一些需要用于的属性值,
+        // 如javax.naming.Context.INITIAL_CONTEXT_FACTORY及javax.naming.Context.URL_PKG_PREFIXES
         initNaming();
 
         // Set configuration source
+        //定义了Catalina的资源位置，getConfigFile获取的就是我们熟知的server.xml
         ConfigFileLoader.setSource(new CatalinaBaseConfigurationSource(Bootstrap.getCatalinaBaseFile(), getConfigFile()));
         File file = configFile();
 
-        // Create and execute our Digester
+        // 3.Digester类处理配置文件server.xml
         Digester digester = createStartDigester();
 
+        //下面的一段InputStream相关的内容均是TOMCAT服务器读取配置文件${catalina.home}/conf/server.xml的过程
         try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) {
             InputStream inputStream = resource.getInputStream();
             InputSource inputSource = new InputSource(resource.getURI().toURL().toString());
@@ -577,10 +581,14 @@ public class Catalina {
         getServer().setCatalinaBase(Bootstrap.getCatalinaBaseFile());
 
         // Stream redirection
+        // 4.用tomcat定义的PrintStream来重定向System.out与System.error
         initStreams();
 
         // Start the new server
         try {
+            //{@Link org.apache.catalina.util.LifecycleBase.init}
+            // 5.在这里server实例指向的是服务器,默认为空,但会在第三步骤中实例化,然后在这里调用其initialize方法,
+            // 要知道这里做了什么事情,还需要先看第三步骤里怎么处理
             getServer().init();
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
@@ -603,6 +611,7 @@ public class Catalina {
     public void load(String args[]) {
 
         try {
+            //已启动为例args[]为{"start"}
             if (arguments(args)) {
                 load();
             }
@@ -630,6 +639,9 @@ public class Catalina {
 
         // Start the new server
         try {
+            //主要内容是调用了server实例的start方法,可以看到整个服务器的启动其实又妥托给server实例来做,因此我们有必要了解该实例是如何初始化的,
+            // 而该实例的初始化工作均放在Catalina.load方法的第三步骤里.但首先,
+            // Digester是tomcat服务器实现上一个比较重要的类,主要是负责对于xml文件的解析工作
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);
@@ -780,6 +792,7 @@ public class Catalina {
 
     /**
      * Set the security package access/protection.
+     * 从catalina.properties读取package.definition及package.access来设置java包的安全访问权限
      */
     protected void setSecurityProtection(){
         SecurityConfig securityConfig = SecurityConfig.newInstance();

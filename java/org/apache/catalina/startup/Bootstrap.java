@@ -67,12 +67,15 @@ public final class Bootstrap {
         String userDir = System.getProperty("user.dir");
 
         // Home first
+        //这里就是vm参数中指定的catalina.home，本地启动需要手动指定这个地址
         String home = System.getProperty(Globals.CATALINA_HOME_PROP);
         File homeFile = null;
 
         if (home != null) {
             File f = new File(home);
+
             try {
+                //getCanonicalPath会将文件路径解析为与操作系统相关的唯一的规范形式的字符串,但是会抛出异常
                 homeFile = f.getCanonicalFile();
             } catch (IOException ioe) {
                 homeFile = f.getAbsoluteFile();
@@ -172,6 +175,8 @@ public final class Bootstrap {
     private ClassLoader createClassLoader(String name, ClassLoader parent)
         throws Exception {
 
+        //从CatalinaProperties持有的properties对象中取值
+        //common.loader = "${catalina.base}/lib","${catalina.base}/lib/*.jar","${catalina.home}/lib","${catalina.home}/lib/*.jar"
         String value = CatalinaProperties.getProperty(name + ".loader");
         if ((value == null) || (value.equals("")))
             return parent;

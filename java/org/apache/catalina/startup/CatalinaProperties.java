@@ -41,6 +41,7 @@ public class CatalinaProperties {
 
 
     static {
+        //初始化该properties对象
         loadProperties();
     }
 
@@ -56,6 +57,9 @@ public class CatalinaProperties {
 
     /**
      * Load properties.
+     * loadProperties用于依次获取catalina.config变量所设置的配置文件、catalina.base变量路径中的catalina.properties及
+     * /org/apache/catalina/startup/catalina.properties来初始化其Properties对象（前者取不到才使用后者），
+     * 并且将该对象的每一个属性也设置到系统属性中
      */
     private static void loadProperties() {
 

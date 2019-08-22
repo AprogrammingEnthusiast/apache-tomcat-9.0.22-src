@@ -237,6 +237,7 @@ public class Digester extends DefaultHandler2 {
     /**
      * The parameters stack being utilized by CallMethodRule and
      * CallParamRule rules.
+     * 一个ArrayStack实例
      */
     protected ArrayStack<Object> params = new ArrayStack<>();
 
@@ -262,6 +263,7 @@ public class Digester extends DefaultHandler2 {
     /**
      * The "root" element of the stack (in other words, the last object
      * that was popped.
+     * 该变更用于指示params位于栈顶的对象
      */
     protected Object root = null;
 
