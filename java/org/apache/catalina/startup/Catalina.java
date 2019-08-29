@@ -279,30 +279,31 @@ public class Catalina {
      */
     protected Digester createStartDigester() {
         long t1=System.currentTimeMillis();
-        // Initialize the digester
+        //先实例化一个Digester类的对象
         Digester digester = new Digester();
         digester.setValidating(false);
         digester.setRulesValidation(true);
         Map<Class<?>, List<String>> fakeAttributes = new HashMap<>();
-        // Ignore className on all elements
+        // 忽略所有元素上的className
         List<String> objectAttrs = new ArrayList<>();
         objectAttrs.add("className");
         fakeAttributes.put(Object.class, objectAttrs);
-        // Ignore attribute added by Eclipse for its internal tracking
+        // 忽略Eclipse为其内部跟踪添加的属性
         List<String> contextAttrs = new ArrayList<>();
         contextAttrs.add("source");
         fakeAttributes.put(StandardContext.class, contextAttrs);
-        // Ignore Connector attribute used internally but set on Server
+        // 忽略在内部使用但在服务器上设置的连接器属性
         List<String> connectorAttrs = new ArrayList<>();
         connectorAttrs.add("portOffset");
         fakeAttributes.put(Connector.class, connectorAttrs);
         digester.setFakeAttributes(fakeAttributes);
         digester.setUseContextClassLoader(true);
 
-        // Configure the actions we will be using
+        // 配置我们将使用的操作
         digester.addObjectCreate("Server",
                                  "org.apache.catalina.core.StandardServer",
                                  "className");
+        //这个方法将加入的Rule实现类为SetPropertiesRule
         digester.addSetProperties("Server");
         digester.addSetNext("Server",
                             "setServer",
@@ -315,6 +316,7 @@ public class Catalina {
                             "setGlobalNamingResources",
                             "org.apache.catalina.deploy.NamingResourcesImpl");
 
+        //这个直接对某一个pattern加入对应的Rule
         digester.addRule("Server/Listener",
                 new ListenerCreateRule(null, "className"));
         digester.addSetProperties("Server/Listener");
@@ -404,7 +406,7 @@ public class Catalina {
                             "addUpgradeProtocol",
                             "org.apache.coyote.UpgradeProtocol");
 
-        // Add RuleSets for nested elements
+        // 可以得知addRuleSet方法主要是用于为某一想同前辍的标签加入一批的Rule实现类
         digester.addRuleSet(new NamingRuleSet("Server/GlobalNamingResources/"));
         digester.addRuleSet(new EngineRuleSet("Server/Service/"));
         digester.addRuleSet(new HostRuleSet("Server/Service/Engine/"));
@@ -564,8 +566,10 @@ public class Catalina {
         //下面的一段InputStream相关的内容均是TOMCAT服务器读取配置文件${catalina.home}/conf/server.xml的过程
         try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) {
             InputStream inputStream = resource.getInputStream();
+            //是xml文件:conf/server.xml的输入流
             InputSource inputSource = new InputSource(resource.getURI().toURL().toString());
             inputSource.setByteStream(inputStream);
+            //将Catalina对象放入一个后入先出的类似stack的数据结构中
             digester.push(this);
             digester.parse(inputSource);
         } catch (Exception e) {

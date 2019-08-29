@@ -808,6 +808,8 @@ public class Digester extends DefaultHandler2 {
     /**
      * Process notification of character data received from the body of
      * an XML element.
+     * 该方法的各参数表示了标签体的内容字符串，此方法主要是将标签体内容赋予bodyText变量，
+     * 该变量将在endElement()方法里使用到
      *
      * @param buffer The characters from the XML document
      * @param start Starting offset into the buffer
@@ -843,11 +845,12 @@ public class Digester extends DefaultHandler2 {
             }
         }
 
+        //弹出所有还在栈中的对象
         while (getCount() > 1) {
             pop();
         }
 
-        // Fire "finish" events for all defined rules
+        //执行所有Rule的finish方法
         for (Rule rule : getRules().rules()) {
             try {
                 rule.finish();
@@ -860,7 +863,7 @@ public class Digester extends DefaultHandler2 {
             }
         }
 
-        // Perform final cleanup
+        // 执行clear方法清空相关堆栈
         clear();
 
     }
@@ -892,7 +895,7 @@ public class Digester extends DefaultHandler2 {
             log.debug("  bodyText='" + bodyText + "'");
         }
 
-        // Parse system properties
+        // 将bodyText中的变量值替换,如标签体中有${systemProperty}
         bodyText = updateBodyText(bodyText);
 
         // the actual element name is either in localName or qName, depending
@@ -902,7 +905,7 @@ public class Digester extends DefaultHandler2 {
             name = qName;
         }
 
-        // Fire "body" events for all relevant rules
+        // 获取与标签路径名匹配的Rule，触发其body及end方法
         List<Rule> rules = matches.pop();
         if ((rules != null) && (rules.size() > 0)) {
             String bodyText = this.bodyText.toString().intern();
@@ -1138,9 +1141,13 @@ public class Digester extends DefaultHandler2 {
         }
 
         // Parse system properties
+        // 更新属性中的系统值引用
         list = updateAttributes(list);
 
         // Save the body text accumulated for our surrounding element
+        // bodyText是Digester挂有的一个用于存放标签体内容的StringBuffer对象，
+        // 当解析开始标签时应该还没有标签体内容的，因此这里给了一个空的StringBuffer对象，
+        // 后又将bodyText放入到bodyTexts(一个ArrayStack)里
         bodyTexts.push(bodyText);
         bodyText = new StringBuilder();
 
@@ -1163,6 +1170,7 @@ public class Digester extends DefaultHandler2 {
         }
 
         // Fire "begin" events for all relevant rules
+        // getRule方法将返回单例的RuleBase对象,然后以标签路径名调用其match方法
         List<Rule> rules = getRules().match(namespaceURI, match);
         matches.push(rules);
         if ((rules != null) && (rules.size() > 0)) {
@@ -1429,6 +1437,7 @@ public class Digester extends DefaultHandler2 {
      * @exception SAXException if a parsing exception occurs
      */
     public Object parse(InputSource input) throws IOException, SAXException {
+        //configure方法定义了一个标识configured标签路径名是否运行过configure方法的布尔值
         configure();
         getXMLReader().parse(input);
         return root;
@@ -1717,6 +1726,9 @@ public class Digester extends DefaultHandler2 {
 
     /**
      * Push a new object onto the top of the object stack.
+     * stack是一个ArrayStack实例，而stack初始时里面是没值的,
+     * 因此push()做的工作是设置root(该变更用于指示位于栈顶的对象)
+     * 变量指向Catalina对象,并将该Catalina对象放到stack的顶部.
      *
      * @param object The new object
      */
